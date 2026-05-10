@@ -3154,7 +3154,7 @@ async function analyzeInvoiceWithAI(){
         model:'meta-llama/llama-4-scout-17b-16e-instruct',
         messages:[{role:'user',content:[
           {type:'image_url',image_url:{url:'data:image/jpeg;base64,'+purchaseImgBase64}},
-          {type:'text',text:'이 명세서에서 품목 목록을 JSON 배열로만 응답. 다른 텍스트 없이 JSON만.\n형식: [{"name":"상품명","qty":숫자,"unitPrice":숫자,"amount":숫자}]\n예: [{"name":"실리콘 200ml","qty":10,"unitPrice":3500,"amount":35000}]'}
+          {type:'text',text:'이 거래명세서에서 품목 목록을 JSON 배열로만 출력. 설명 없이 JSON만.\n형식: [{"name":"상품명","qty":수량,"unitPrice":단가,"amount":금액}]\n숫자는 쉼표없이 순수숫자. 예: [{"name":"실리콘건","qty":10,"unitPrice":3500,"amount":35000}]'}
         ]}],
         temperature:0,max_tokens:1000
       })
