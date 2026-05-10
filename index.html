@@ -1558,7 +1558,78 @@ function showStoreSelect(){
 }
 function setStore(store){curStore=store;document.getElementById('storeLabel').textContent='🏪 '+store;document.getElementById('storeModal').classList.add('hide');toast(store+' 선택됨','ok');}
 
-// ══ 바코드/QR 스캔 ════════════════════════════════════
+// ══ USB 바코드 스캐너 전역 감지 ══════════════════════
+// 스캐너: 연속 입력 빠름 (키 간격 < 50ms) + Enter로 끝남
+var _bcBuf='', _bcLastTime=0, _bcTimer=null;
+document.addEventListener('keydown', function(e){
+  var now=Date.now();
+  var gap=now-_bcLastTime;
+  _bcLastTime=now;
+
+  if(e.key==='Enter'){
+    if(_bcBuf.length>=3){
+      // 스캐너 입력 (빠른 연속입력 후 Enter)
+      var code=_bcBuf.trim();
+      _bcBuf='';clearTimeout(_bcTimer);
+      handleGlobalBarcode(code);
+      e.preventDefault();e.stopPropagation();
+    } else {
+      _bcBuf='';
+    }
+    return;
+  }
+
+  if(e.key.length===1){
+    // 빠른 입력(스캐너) = 50ms 이내, 느린 입력(키보드) = 무시
+    if(gap<50||_bcBuf.length>0&&gap<150){
+      _bcBuf+=e.key;
+      clearTimeout(_bcTimer);
+      _bcTimer=setTimeout(function(){_bcBuf='';},500);
+      // 검색창 포커스 상태면 추가 입력 막기 (스캐너로 판단)
+      var tag=(document.activeElement||{}).tagName||'';
+      if((tag==='INPUT'||tag==='TEXTAREA')&&_bcBuf.length>1){
+        e.preventDefault();e.stopPropagation();
+      }
+    } else {
+      // 느린 키보드 입력 → 버퍼 초기화
+      _bcBuf='';
+    }
+  }
+},true); // capture phase
+
+function handleGlobalBarcode(code){
+  if(!code||code.length<3)return;
+  var tabId='';
+  var niOn=document.querySelector('.ni.on');
+  if(niOn)tabId=(niOn.id||'').replace('ni-','');
+
+  var p=products.find(function(p){
+    return p.barcode&&(p.barcode===code||p.barcode===code.padStart(13,'0')||code===p.barcode.replace(/^0+/,''));
+  });
+
+  if(tabId===''||tabId==='pos'){
+    if(p){
+      addToCart(p.id);
+      // 검색창 초기화
+      var si=document.getElementById('searchInput');if(si)si.value='';
+      var sl=document.getElementById('searchList');if(sl)sl.innerHTML='';
+      toast('📦 '+p.name+' 스캔됨','ok');
+    } else {
+      var si=document.getElementById('searchInput');
+      if(si){si.value=code;si.dispatchEvent(new Event('input'));}
+      toast('바코드 '+code+' - 상품 없음','info');
+    }
+    return;
+  }
+  if(tabId==='inv'){
+    var si=document.getElementById('invSearch');
+    if(si){si.value=code;si.dispatchEvent(new Event('input'));}
+    return;
+  }
+  // 기타 탭
+  if(p){toast('📦 '+p.name+' ('+code+')','ok');}
+  else{toast('바코드: '+code,'info');}
+}
 function openScan(target){
   scanTarget=target;document.getElementById('scanModal').classList.remove('hide');document.getElementById('manualBC').value='';
   navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}).then(function(stream){
