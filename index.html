@@ -431,6 +431,9 @@ body.kiosk .kiosk-banner{display:block}
   <div class="sb-sec">관리</div>
   <div class="ni" id="ni-products" onclick="goTab('products')"><span class="ni-ic">📦</span>상품관리</div>
   <div class="ni" id="ni-purchase" onclick="goTab('purchase')"><span class="ni-ic">🧾</span>매입관리</div>
+  <div class="ni" id="ni-quote" onclick="goTab('quote')"><span class="ni-ic">📄</span>견적/명세서</div>
+  <div class="ni" id="ni-demand" onclick="goTab('demand')"><span class="ni-ic">📋</span>고객요구</div>
+  <div class="ni" id="ni-display" onclick="goTab('display')"><span class="ni-ic">🗂️</span>재고진열</div>
   <div class="ni" id="ni-stats" onclick="goTab('stats')"><span class="ni-ic">📊</span>매출현황</div>
   <div class="ni" id="ni-stockmove" onclick="goTab('stockmove')"><span class="ni-ic">↔️</span>재고이동</div>
   <div class="ni" id="ni-order" onclick="goTab('order')"><span class="ni-ic">📋</span>발주관리</div>
@@ -1354,6 +1357,95 @@ body.kiosk .kiosk-banner{display:block}
   </div>
 </div>
 
+    <!-- 견적서/거래명세서 -->
+    <div id="pg-quote" style="display:none;flex:1;gap:14px" class="inv-wrap">
+      <div class="inv-L">
+        <div class="ph"><div class="ph-t">📄 견적서 / 거래명세서</div>
+          <div style="display:flex;gap:5px">
+            <button class="btn btn-gray btn-sm" onclick="loadQuoteHistory()">📋 이력</button>
+            <button class="btn btn-blue btn-sm" onclick="newQuote()">+ 새 문서</button>
+          </div>
+        </div>
+        <div style="padding:8px 10px;border-bottom:1px solid var(--bd);flex-shrink:0">
+          <div style="display:flex;gap:5px">
+            <input class="fi" id="quoteSearch" placeholder="🔍 상품 검색 후 클릭..." oninput="searchQuoteProduct()" style="flex:1">
+            <button class="btn btn-gray btn-sm" onclick="addQuoteItemManual()">+ 직접</button>
+          </div>
+          <div id="quoteProductSuggest" style="display:none;background:#fff;border:1px solid var(--bd);border-radius:7px;margin-top:4px;max-height:150px;overflow-y:auto"></div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 12px;background:#f9f9fb;border-bottom:1px solid var(--bd);flex-shrink:0">
+          <div style="font-size:11px;font-weight:700;color:var(--mt)">품목 <span id="quoteItemCnt" style="color:var(--acc)"></span></div>
+          <div style="display:flex;gap:4px"><button class="btn btn-gray btn-sm" onclick="loadQuoteFromCart()">🛒 장바구니</button><button class="btn btn-gray btn-sm" onclick="clearQuoteItems()">삭제</button></div>
+        </div>
+        <div class="lscr" id="quoteItemList"><div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:8px;color:var(--mt);padding:24px;text-align:center"><span style="font-size:36px">📄</span><div style="font-size:12px">상품을 검색하거나 장바구니에서 불러오세요</div></div></div>
+      </div>
+      <div style="width:300px;background:var(--card);border-radius:var(--r);box-shadow:var(--sh);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden">
+        <div style="padding:8px 12px;border-bottom:1px solid var(--bd);font-size:12px;font-weight:700">📋 문서 정보</div>
+        <div style="padding:8px;flex-shrink:0;border-bottom:1px solid var(--bd);display:flex;flex-direction:column;gap:5px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">
+            <button id="quoteTypeQ" onclick="setQuoteType('quote')" style="padding:7px;border-radius:7px;border:2px solid var(--acc);background:#f0f7ff;color:var(--acc);font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">📄 견적서</button>
+            <button id="quoteTypeI" onclick="setQuoteType('invoice')" style="padding:7px;border-radius:7px;border:2px solid var(--bd);background:#fff;color:var(--mt);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer">🧾 거래명세서</button>
+          </div>
+          <input class="fi" id="quoteTo" placeholder="거래처/고객명">
+          <input class="fi" id="quotePhone" placeholder="연락처">
+          <input class="fi" id="quoteDate" type="date">
+          <input class="fi" id="quoteValid" placeholder="유효기간 (예: 7일)" style="font-size:11px">
+          <input class="fi" id="quoteMemo" placeholder="메모 (배송비 별도 등)">
+        </div>
+        <div style="padding:8px 12px;border-bottom:1px solid var(--bd);flex-shrink:0">
+          <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px"><span style="color:var(--mt)">소계</span><span id="quoteSubtotal">0원</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;align-items:center"><span style="color:var(--mt);display:flex;align-items:center;gap:4px">부가세<input type="checkbox" id="quoteTax" onchange="updateQuoteSummary()">10%</span><span id="quoteTaxAmt">0원</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:800"><span>합계</span><span id="quoteTotal" style="color:var(--acc)">0원</span></div>
+        </div>
+        <div style="flex:1;overflow-y:auto" id="quoteHistoryPanel"><div style="padding:10px;color:var(--mt);font-size:11px;text-align:center">문서 이력</div></div>
+        <div style="padding:8px;border-top:1px solid var(--bd);flex-shrink:0;display:flex;flex-direction:column;gap:5px">
+          <button onclick="printQuote()" style="width:100%;padding:10px;background:var(--acc);color:#fff;border:none;border-radius:8px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">🖨️ 인쇄 / PDF저장</button>
+          <button onclick="saveQuote()" style="width:100%;padding:8px;background:#f9f9fb;color:var(--mt);border:1px solid var(--bd);border-radius:8px;font-family:inherit;font-size:11px;cursor:pointer">💾 임시저장</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 고객요구 메모 -->
+    <div id="pg-demand" style="display:none;flex:1;gap:14px" class="inv-wrap">
+      <div class="inv-L">
+        <div class="ph"><div class="ph-t">📋 고객요구 메모</div>
+          <button class="btn btn-blue btn-sm" onclick="openDemandForm()">+ 새 요구사항</button>
+        </div>
+        <div style="padding:7px 10px;border-bottom:1px solid var(--bd);flex-shrink:0;display:flex;gap:5px">
+          <input class="fi" id="demandSearch" placeholder="🔍 상품명 검색..." oninput="renderDemandList()" style="flex:1">
+          <select class="fs" id="demandFilter" onchange="renderDemandList()" style="font-size:11px">
+            <option value="all">전체</option><option value="pending">검토중</option><option value="reviewed">검토완료</option>
+          </select>
+        </div>
+        <div class="lscr" id="demandList"><div style="padding:20px;text-align:center;color:var(--mt)">불러오는 중...</div></div>
+      </div>
+      <div style="width:280px;background:var(--card);border-radius:var(--r);box-shadow:var(--sh);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden">
+        <div style="padding:10px 12px;border-bottom:1px solid var(--bd);font-size:13px;font-weight:700">📊 판매검토 현황</div>
+        <div style="flex:1;overflow-y:auto" id="demandStats"><div style="padding:12px;color:var(--mt);font-size:11px;text-align:center">로딩 중...</div></div>
+      </div>
+    </div>
+
+    <!-- 재고진열 -->
+    <div id="pg-display" style="display:none;flex:1;gap:14px" class="inv-wrap">
+      <div class="inv-L">
+        <div class="ph"><div class="ph-t">🗂️ 재고 진열 지시서</div>
+          <div style="display:flex;gap:5px">
+            <select class="fs" id="displayStore" onchange="renderDisplayPage()" style="font-size:12px"><option value="남양주">남양주</option><option value="의정부">의정부</option></select>
+            <button class="btn btn-blue btn-sm" onclick="generateDisplayList()">목록 생성</button>
+          </div>
+        </div>
+        <div style="padding:6px 10px;border-bottom:1px solid var(--bd);flex-shrink:0;display:flex;gap:5px">
+          <input class="fi" id="displaySearch" placeholder="🔍 상품 검색..." oninput="filterDisplayList()" style="flex:1">
+          <button class="btn btn-gray btn-sm" onclick="completeAllDisplay()">전체완료</button>
+        </div>
+        <div class="lscr" id="displayList"><div style="padding:20px;text-align:center;color:var(--mt);">"목록 생성" 버튼을 눌러주세요</div></div>
+      </div>
+      <div style="width:260px;background:var(--card);border-radius:var(--r);box-shadow:var(--sh);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden">
+        <div style="padding:10px 12px;border-bottom:1px solid var(--bd);font-size:13px;font-weight:700">📈 진열 현황</div>
+        <div style="flex:1;overflow-y:auto;padding:10px" id="displaySummary"><div style="text-align:center;color:var(--mt);font-size:11px">목록 생성 후 표시됩니다</div></div>
+      </div>
+    </div>
+
 <!-- 재고이동 -->
 <div class="mbg hide" id="moveModal">
   <div class="mbox">
@@ -1523,14 +1615,14 @@ function updateTopStats(){
 }
 
 // ══ 탭 ════════════════════════════════════════════════
-var TABS={pos:'판매/결제',inv:'재고관리',label:'라벨인쇄',order:'발주관리',stats:'매출현황',closing:'마감',basic:'기초관리',products:'상품관리',purchase:'매입관리',stockmove:'재고이동',ops:'운영관리'};
+var TABS={pos:'판매/결제',inv:'재고관리',label:'라벨인쇄',order:'발주관리',stats:'매출현황',closing:'마감',basic:'기초관리',products:'상품관리',purchase:'매입관리',quote:'견적/명세서',demand:'고객요구',display:'재고진열',stockmove:'재고이동',ops:'운영관리'};
 function goTab(name){
   Object.keys(TABS).forEach(function(t){
     var pg=document.getElementById('pg-'+t);if(pg)pg.style.display='none';
     var ni=document.getElementById('ni-'+t);if(ni)ni.className='ni';
   });
   var pg=document.getElementById('pg-'+name);
-  if(pg)pg.style.display=(name==='pos'||name==='inv'||name==='basic'||name==='label'||name==='products'||name==='stockmove'||name==='purchase')?'flex':'block';  var ni=document.getElementById('ni-'+name);if(ni)ni.className='ni on';
+  if(pg)pg.style.display=(name==='pos'||name==='inv'||name==='basic'||name==='label'||name==='products'||name==='stockmove'||name==='purchase'||name==='quote'||name==='demand'||name==='display')?'flex':'block';  var ni=document.getElementById('ni-'+name);if(ni)ni.className='ni on';
   document.getElementById('pgTitle').textContent=TABS[name]||name;
   var tr=document.getElementById('tbRight');tr.innerHTML='';
   if(name==='pos'||name==='inv'){var b=document.createElement('button');b.className='btn btn-gray btn-sm';b.textContent='📷 바코드 스캔';b.onclick=function(){openScan(name);};tr.appendChild(b);}
@@ -1538,6 +1630,9 @@ function goTab(name){
   if(name==='label')renderLabelList();
   if(name==='products'){renderProductList();buildProductCatFilter();}
   if(name==='purchase'){renderPurchasePage();}
+  if(name==='quote'){renderQuotePage();}
+  if(name==='demand'){renderDemandPage();}
+  if(name==='display'){renderDisplayPage();}
   if(name==='stockmove'){smShowSearch();setTimeout(function(){renderTransferRequests();loadPendingMoves();},500);}
   if(name==='ops')renderOpsLog();
   if(name==='order'){renderOrderList();renderOrderContact();}
@@ -1822,7 +1917,10 @@ async function doCardPay(){
   var disc=getDisc(sub),total=Math.max(0,sub-disc);
   // saveSale() 이후 cart가 초기화되므로 미리 복사
   var itms=cart.map(function(i){return{name:i.name,qty:i.qty,price:i.sellPrice||i.buyPrice||0};});
-  try{await saveSale({total:total,subtotal:sub,discount:disc,payMethod:'card'});document.getElementById('cardPayModal').classList.add('hide');showRc({items:itms,total:total,sub:sub,disc:disc,payMethod:'card'});toast('카드 결제 완료!','ok');}
+  try{await saveSale({total:total,subtotal:sub,discount:disc,payMethod:'card'});document.getElementById('cardPayModal').classList.add('hide');showRc({items:itms,total:total,sub:sub,disc:disc,payMethod:'card'});toast('카드 결제 완료!','ok');
+  // 키오스크 카드 경고
+  if(kioskMode){playCardAlert();setTimeout(function(){alert('💳 카드를 꺼내주세요!\n영수증을 확인해 주세요.');},300);}
+  }
   catch(e){toast('오류: '+e.message,'err');}
 }
 
@@ -2288,14 +2386,21 @@ async function saveMember(){var name=document.getElementById('mName').value.trim
 
 // ══ 메인화면 검색 (심플) ══════════════════════════════
 function renderGrid(){
-  var q=(document.getElementById('posSearch').value||'').toLowerCase();
+  var q=(document.getElementById('posSearch').value||'').toLowerCase().trim();
   var wrap=document.getElementById('searchResultWrap');
   var el=document.getElementById('grid');
   if(!q){wrap.style.display='none';updateTodaySummary();return;}
   wrap.style.display='block';
-  var list=products.filter(function(p){return p.name.toLowerCase().indexOf(q)>=0||(p.barcode||'').indexOf(q)>=0;});
-  if(!list.length){el.innerHTML='<div style="padding:20px;text-align:center;color:var(--mt)">검색 결과 없음</div>';return;}
-  el.innerHTML=list.slice(0,20).map(function(p){
+  // 검색범위: 상품명, 바코드(앞뒤 0 무시), 카테고리, 거래처
+  var list=products.filter(function(p){
+    return p.name.toLowerCase().indexOf(q)>=0||
+      (p.barcode||'').indexOf(q)>=0||
+      (p.barcode||'').replace(/^0+/,'').indexOf(q)>=0||
+      (p.category||'').toLowerCase().indexOf(q)>=0||
+      (p.supplier||'').toLowerCase().indexOf(q)>=0;
+  });
+  if(!list.length){el.innerHTML='<div style="padding:20px;text-align:center;color:var(--mt)">검색 결과 없음 (상품명/바코드/카테고리)</div>';return;}
+  el.innerHTML=list.slice(0,30).map(function(p){
     var s=p.stock||0,price=p.sellPrice||p.buyPrice||0;
     var sc=s>10?'var(--grn)':s>0?'var(--gold)':'var(--red)';
     return '<div style="display:flex;align-items:center;padding:10px 12px;background:#f9f9fb;border-radius:8px;cursor:pointer;border:1px solid var(--bd)" data-id="'+p.id+'" onclick="addToCart(this.dataset.id)">'+
@@ -2304,8 +2409,7 @@ function renderGrid(){
       '<div style="text-align:right;flex-shrink:0;margin-left:10px"><div style="font-size:14px;font-weight:700;color:var(--acc)">'+(price?fmtN(price)+'원':'-')+'</div>'+
       '<div style="font-size:11px;color:'+sc+';font-weight:600">재고: '+s+'</div></div>'+
       '<div style="margin-left:10px;background:var(--acc);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">추가</div></div>';
-  }).join('');
-}
+  }).join('');}
 function updateTodaySummary(){
   var el=document.getElementById('todaySummary');if(!el)return;
   var total=todaySales.length;
